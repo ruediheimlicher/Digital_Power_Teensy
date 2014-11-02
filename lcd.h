@@ -16,14 +16,13 @@
 #include <inttypes.h>
 
 /* AVR port and pins connected to '164 and/or LCD */
-#define LCD_PORT                 PORTF
-#define LCD_DDR                  DDRF
+#define LCD_PORT                 PORTB
+#define LCD_DDR                  DDRB
 
-#define LCD_RSDS_PIN            5
-#define LCD_ENABLE_PIN          6
-#define LCD_CLOCK_PIN           7
+#define LCD_RSDS_PIN            4
+#define LCD_ENABLE_PIN          5
+#define LCD_CLOCK_PIN           6
 
-#define LCD_BACKLIGHT_PIN       7
 
 /* number of columns on the display */
 #define LCD_COLS 20

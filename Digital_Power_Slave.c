@@ -26,13 +26,8 @@
 
 //#include "spi.c"
 #include "spi_adc.c"
-//#include "spi_ram.c"
-//#include "spi_eeprom.c"
 
-//#include "font.h"
-//#include "display.c"
-
-#include "text.h"
+//#include "text.h"
 
 
 
@@ -161,7 +156,7 @@ volatile uint16_t outchecksumme=0;
 
 volatile uint8_t eeprom_databyte=0;
 volatile uint8_t anzahlpakete=0;
-volatile uint8_t eeprom_errcount = 0;
+//volatile uint8_t usb_readcount = 0;
 
 volatile uint8_t  eeprom_indata=0;
 
@@ -404,20 +399,6 @@ volatile uint16_t batteriespannung =0;
 volatile uint16_t Tastenwert=0;
 volatile uint16_t Trimmtastenwert=0;
 volatile uint8_t adcswitch=0;
-
-// MARK: Proto
-uint8_t eeprombyteschreiben(uint8_t code, uint16_t writeadresse,uint8_t eeprom_writedatabyte);
-uint8_t eeprombytelesen(uint16_t readadresse); // 300 us ohne lcd_anzeige
-uint8_t eeprompartlesen(uint16_t readadresse); //   us ohne lcd_anzeige
-uint16_t eeprompartschreiben(void); // 23 ms
-
-void eepromtrimmschreiben(uint16_t writeadresse,uint8_t eeprom_writedatabyte);
-void read_eeprom_zeit(void);
-void write_eeprom_zeit(void);
-void write_eeprom_status(void);
-void write_Ext_EEPROM_Settings(void);
-void write_Ext_EEPROM_Trimm(uint8_t device);
-
 
 
 /*
@@ -957,7 +938,7 @@ int main (void)
  //  volatile    uint8_t eeprom_indata=0;
  //  volatile    uint8_t eeprom_testdata =0x00;
  //  volatile    uint8_t eeprom_testaddress =0x00;
-   volatile    uint8_t eeprom_errcount =0x00;
+   volatile    uint8_t usb_readcount =0x00;
    
    // ---------------------------------------------------
  	// initialize the LCD
@@ -1030,7 +1011,12 @@ int main (void)
 			loopcount1+=1;
 			LOOPLEDPORT ^=(1<<LOOPLED);
          
-          if(loopcount1%16 == 0)
+ //        lcd_gotoxy(18,0);
+ //        lcd_puthex(loopcount1);
+          sendbuffer[4] = loopcount1;
+         uint8_t usberfolg = usb_rawhid_send((void*)sendbuffer, 50);
+
+         if(loopcount1%16 == 0)
          {
             anzeigecounter = 0;
             if (anzeigecounter)
@@ -1098,7 +1084,7 @@ int main (void)
 //         if ((usbtask & (1<<EEPROM_WRITE_PAGE_TASK) )) //|| usbtask & (1<<EEPROM_WRITE_BYTE_TASK))
          //OSZI_C_LO;
          
-         uint8_t anz = usb_rawhid_send((void*)sendbuffer, 50); // 20 us
+      //   uint8_t anz = usb_rawhid_send((void*)sendbuffer, 50); // 20 us
          //OSZI_C_HI;
          if ((masterstatus & (1<< HALT_BIT) )) //|| usbtask & (1<<EEPROM_WRITE_BYTE_TASK))
          {
@@ -1126,19 +1112,53 @@ int main (void)
       r = usb_rawhid_recv((void*)buffer, 0); // 2us
       //OSZI_D_HI;
       // MARK: USB_READ
+      
       if (r > 0)
       {
          //OSZI_D_LO;
          cli();
+         usb_readcount++;
          uint8_t code = 0x00;
+         OSZI_A_TOGG;
+         /*
+         lcd_gotoxy(0,0);
+         //lcd_putc('*');
+         lcd_puthex(r);
+         lcd_putc('*');
+         lcd_putint2(usb_readcount);
+         lcd_putc('*');
+         
+         lcd_puthex(buffer[0]);
+         
+         lcd_puthex(buffer[1]);
+         lcd_puthex(buffer[2]);
+         lcd_puthex(buffer[3]);
+         lcd_putc('*');
+          */
+         sendbuffer[0] = usb_readcount;
+         sendbuffer[1] = 13;
+         sendbuffer[2] = 14;
+         sendbuffer[3] = 15;
+         
+         uint8_t usberfolg = usb_rawhid_send((void*)sendbuffer, 50);
+         /*
+         lcd_gotoxy(0,1);
+         lcd_putc('*');
+         lcd_putint(usberfolg);
+         lcd_putc('*');
+         */
+         
+
          usbstatus |= (1<<USB_RECV);
          {
-            code = buffer[0];
+            code = 0;//buffer[0];
+            /*
             switch (code)
             {
                case 0xC0: // Write EEPROM Page start
                {
-                  eeprom_errcount=0;
+                  
+                  usb_readcount=0;
                   abschnittnummer++;
                   eepromstartadresse = buffer[1] | (buffer[2]<<8);
                   anzahlpakete = buffer[3];
@@ -1149,7 +1169,7 @@ int main (void)
                   lcd_putc('*');
                   lcd_putint(anzahlpakete);
                   lcd_putc('*');
-                  
+                  lcd_putint(abschnittnummer);
                   sendbuffer[0] = 0xC1;
                   usb_rawhid_send((void*)sendbuffer, 50);
                   lcd_putc('*');
@@ -1172,7 +1192,7 @@ int main (void)
                case 0xC4: // Write EEPROM Byte  // 10 ms
                {
                   //OSZI_A_TOGG;
-                  eeprom_errcount=0;
+                  usb_readcount=0;
                   //abschnittnummer++;
                   eepromstartadresse = buffer[1] | (buffer[2]<<8);
                   eeprom_databyte = buffer[3];
@@ -1193,7 +1213,7 @@ int main (void)
                   
                   sendbuffer[3] = buffer[3];
                   sendbuffer[4] = 0; //check;// ist bytechecksumme
-                  sendbuffer[5] = eeprom_errcount;
+                  sendbuffer[5] = usb_readcount;
                   
                   sendbuffer[6] = 0xFF;
                   sendbuffer[7] = 0xFF;
@@ -1211,8 +1231,10 @@ int main (void)
              
                   
             } // switch code
+             
+             */
          }
-         
+         OSZI_A_HI;
          //lcd_putc('$');
          code=0;
          sei();

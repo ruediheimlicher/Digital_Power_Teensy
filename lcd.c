@@ -51,14 +51,6 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdlib.h>
-extern char* wochentag[];
-/*
- * Turns the backlight on or off.  The LCD_BACKLIGHT_PIN should be defined as
- * the pin connected to the backlight control of the LCD.
- *
- * Parameters:
- *      backlight_on    0=off, 1=on
-*/
 
 void lcddelay_ms(unsigned int ms)/* delay for a minimum of <ms> */
 {
@@ -73,18 +65,6 @@ void lcddelay_ms(unsigned int ms)/* delay for a minimum of <ms> */
 
 
 
-void 
-lcd_backlight(int backlight_on)
-{
-        if (backlight_on)
-        {
-                /* LCD Backlight on */
-                LCD_PORT |= _BV(LCD_BACKLIGHT_PIN);                
-        } else {
-                /*  LCD Backlight off */
-                LCD_PORT &= ~_BV(LCD_BACKLIGHT_PIN);
-        }
-}
 
 /*
  * Initializes the LCD.  Should be called during the initialization of the 

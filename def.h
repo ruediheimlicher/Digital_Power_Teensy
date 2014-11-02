@@ -209,9 +209,6 @@
 #define MINWAIT         3 // Anzahl loops von loopcount1 bis einschalten
 
 
-#define TASTATURPORT    PORTF
-#define TASTATURPIN		0
-#define TRIMMTASTATURPIN		3
 
 
 // end Screen
@@ -267,20 +264,6 @@
 #define BATTERIE_UPDATE    1
 
 
-// Task fuer substatus
-#define TASTATUR_READ   0
-//#define TASTATUR_OK     1
-#define SETTINGS_READ    2
-
-#define SCREEN_OK       4
-#define SCREEN_REFRESH  5
-#define UHR_OK          6
-#define UHR_REFRESH     7
-
-// Bits fuer tastaturstatus
-
-#define READ_TRIMM    3
-#define READ_TASTEN    4
 
 
 // Bits fuer usbstatus
