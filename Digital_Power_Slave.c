@@ -27,8 +27,7 @@
 //#include "spi.c"
 #include "spi_adc.c"
 
-//#include "text.h"
-
+#include "spi_slave.c"
 
 
 
@@ -43,6 +42,9 @@
 
 #define USB_DATENBREITE 64
 #define EE_PARTBREITE 32
+
+#define CODE_OFFSET  8
+#define ROTARY_OFFSET  10
 
 /*
 const char wertearray[] PROGMEM = {TASTE1,TASTE2,TASTE3,TASTE4,TASTE5,TASTE6,TASTE7,TASTE8,TASTE9,TASTE_L,TASTE0,TASTE_R};
@@ -208,193 +210,11 @@ volatile uint8_t                  horizontaltrimm_R=0;
 
 
 
-volatile uint8_t                 programmstatus=0x00;
-
-volatile uint8_t                 senderstatus=0x00;
-
-volatile uint8_t levelwert=0x32;
-volatile uint8_t levelb=0x12;
-
-volatile uint8_t expowert=0;
-volatile uint8_t expob=0;
-
-/*
-volatile uint8_t                 default_settingarray[8][2]=
-{
-   {0x12,0x21},
-   {0x00,0x00},
-   {0x00,0x00},
-   {0x00,0x00},
-   {0x00,0x00},
-   {0x00,0x00},
-   {0x00,0x00},
-   {0x00,0x00}
-};
-*/
-volatile uint8_t                 default_levelarray[8]=
-{
-   0x12,
-   0x00,
-   0x00,
-   0x00,
-   0x00,
-   0x00,
-   0x00,
-   0x00
-};
 
 
-volatile uint8_t                 default_expoarray[8]=
-{
-   0x21,
-   0x00,
-   0x00,
-   0x00,
-   0x04, // Schieber
-   0x04,
-   0x08, // Schalter
-   0x08
-};
-
-volatile uint8_t                 default_mixarray[8]=
-{
-   // index gerade  :  mixa(parallel) mit (0x70)<<4, mixb(opposite) mit 0x07
-   // index ungerade: typ mit 0x03
-   0x00, // V-mix
-   0x88, // OFF
-   0x00,
-   0x88,
-   0x00,
-   0x00,
-   0x00,
-   0x00
-};
-
-volatile uint8_t                 default_funktionarray[8]=
-{
-   //
-   // bit 0-2: Steuerfunktion bit 4-6: Kanal von Steuerfunktion
-   0x00,
-   0x11,
-   0x22,
-   0x33,
-   0x44,
-   0x55,
-   0x66,
-   0x77
-};
-
-volatile uint8_t                 default_devicearray[8]=
-{
-   //
-   // bit 0-2: device bit 4-6: Kanal von Devicefunktion
-   0x00,
-   0x11,
-   0x22,
-   0x33,
-   0x44,
-   0x55,
-   0x66,
-   0x77
-};
-
-volatile uint8_t                 default_ausgangarray[8]=
-{
-   //
-   // bit 0-2: Kanal bit 4-6:
-   0x00,
-   0x01,
-   0x02,
-   0x03,
-   0x04,
-   0x05,
-   0x06,
-   0x07
-};
-
-volatile int8_t                 default_trimmungarray[8]=
-{
-   //
-   // Abweichung von Mitte + 0x7F
-   0x7F,
-   0x7F,
-   0x7F,
-   0x7F,
-   0x00,
-   0x00,
-   0x00,
-   0x00
-};
+//volatile uint16_t                SPI_Data_counter; // Zaehler fuer Update des screens
 
 
-volatile uint8_t              curr_levelarray[8];
-volatile uint8_t              curr_expoarray[8];
-volatile uint8_t              curr_mixarray[8]={};
-volatile uint8_t              curr_funktionarray[8];
-volatile uint8_t             curr_devicearray[8] = {};
-volatile uint8_t             curr_ausgangarray[8];
-volatile uint8_t              curr_trimmungarray[8];
-
-
-volatile uint16_t                updatecounter; // Zaehler fuer Update des screens
-
-volatile uint8_t                 curr_screen=0; // aktueller screen
-
-volatile uint8_t                 curr_page=7; // aktuelle page
-volatile uint8_t                 curr_col=0; // aktuelle colonne
-
-volatile uint8_t                 curr_cursorzeile=0; // aktuelle zeile des cursors
-volatile uint8_t                 curr_cursorspalte=0; // aktuelle colonne des cursors
-volatile uint8_t                 last_cursorzeile=0; // letzte zeile des cursors
-volatile uint8_t                 last_cursorspalte=0; // letzte colonne des cursors
-
-
-volatile uint8_t                 curr_model=0; // aktuelles modell
-uint8_t              EEMEM       speichermodel=0;
-volatile uint8_t                 curr_kanal=0; // aktueller kanal
-volatile uint8_t                 curr_richtung=0; // aktuelle richtung
-volatile uint8_t                 curr_impuls=0; // aktueller impuls
-
-volatile uint8_t                 curr_setting=0; // aktuelles Setting fuer Modell
-uint8_t              EEMEM       speichersetting=0;
-
-volatile uint8_t                 curr_trimmkanal=0; // aktueller  Kanal fuerTrimmung
-volatile uint8_t                 curr_trimmung=0; // aktuelle  Trimmung fuer Trimmkanal
-
-
-volatile uint16_t                posregister[8][8]={}; // Aktueller screen: werte fuer page und daraufliegende col fuer Menueintraege (hex). geladen aus progmem
-
-volatile uint16_t                cursorpos[8][8]={}; // Aktueller screen: werte fuer page und darauf liegende col fuer den cursor
-volatile uint16_t                 blink_cursorpos=0xFFFF;
-
-volatile uint16_t laufsekunde=0;
-uint8_t  EEMEM speichersekunde;
-
-
-
-volatile uint8_t laufminute=0;
-uint8_t  EEMEM speicherminute;
-
-volatile uint8_t laufstunde=0;
-uint8_t  EEMEM speicherstunde;
-
-
-volatile uint16_t motorsekunde=0;
-uint8_t  EEMEM speichermotorsekunde;
-
-volatile uint16_t motorminute=0;
-uint8_t  EEMEM speichermotorminute;
-
-volatile uint16_t stopsekunde=0;
-uint8_t  EEMEM speicherstopsekunde;
-
-volatile uint16_t stopminute=0;
-uint8_t  EEMEM speicherstopminute;
-
-
-
-
-volatile uint16_t batteriespannung =0;
 
 volatile uint16_t Tastenwert=0;
 volatile uint16_t Trimmtastenwert=0;
@@ -490,30 +310,23 @@ void Master_Init(void)
     */
    
    
+   
    // ---------------------------------------------------
    // Pin Change Interrupt enable on PCINT0 (PD7)
    // ---------------------------------------------------
    
-   PCIFR |= (1<<PCIF0);
-   PCICR |= (1<<PCIE0);
-	PCMSK0 |= (1<<PCINT7);
+   // PCIFR |= (1<<PCIF0);
+   // PCICR |= (1<<PCIE0);
+   //PCMSK0 |= (1<<PCINT7);
   
    // ---------------------------------------------------
    // USB_Attach
    // ---------------------------------------------------
    
-   USB_DDR &= ~(1<<USB_DETECT_PIN); // Eingang fuer USB_detection
-   USB_PORT &= ~(1<<USB_DETECT_PIN); // LO
-   EICRA |= (1<<ISC30)|(1<<ISC31); // rising edge
+   EICRA |= (1<<ISC01); // falling edge
    EIMSK=0;
-   EIMSK |= (1<<INTF3); // Interrupt en
+   EIMSK |= (1<<INT0); // Interrupt en
 
-   INTERRUPT_DDR &= ~(1 << MASTER_EN_PIN); // Eingang fur PinChange-Interrupt
-   
-   INTERRUPT_PORT |= (1 << MASTER_EN_PIN) ; // turn On the Pull-up
-   
-   MASTER_DDR |= (1 << SUB_BUSY_PIN); // BUSY-Pin als Ausgang
-   MASTER_PORT |= (1 << SUB_BUSY_PIN) ; // HI
    
    // ---------------------------------------------------
 	//LCD
@@ -522,22 +335,7 @@ void Master_Init(void)
  	LCD_DDR |= (1<<LCD_ENABLE_PIN);	//Pin als Ausgang fuer LCD
 	LCD_DDR |= (1<<LCD_CLOCK_PIN);	//Pin 6 von PORT D als Ausgang fuer LCD
    
-   // ---------------------------------------------------
-   // ADC fuer Akkuspannung
-   // ---------------------------------------------------
-   ADC_DDR &= ~(1<<ADC_AKKUPIN);
    
-//   TASTATURPORT &= ~(1<<TASTATURPIN);
-//   TASTATURPORT &= ~(1<<TRIMMTASTATURPIN);
-   
-   SUB_EN_DDR |= (1<<SUB_EN_PIN);
-   SUB_EN_PORT |= (1<<SUB_EN_PIN);
-   
-   // Analog Comparator
-   //ACSR = (1<<ACIE)|(1<<ACBG)|(1<<ACIS0)|(1<<ACIS1);
-   
-   //OFF_DDR &= ~(1<<OFF_DETECT); // Eingang fuer Analog Comp
-//   OFF_PORT |= (1<<OFF_DETECT); // HI
 }
 
 
@@ -546,6 +344,7 @@ void SPI_PORT_Init(void) // SPI-Pins aktivieren
    
    //http://www.atmel.com/dyn/resources/prod_documents/doc2467.pdf  page:165
    
+   /*
    //Master init
    // Set MOSI and SCK output, all others input
    SPI_DDR &= ~(1<<SPI_MISO_PIN);
@@ -555,6 +354,20 @@ void SPI_PORT_Init(void) // SPI-Pins aktivieren
    SPI_PORT &= ~(1<<SPI_SCK_PIN); // LO
    SPI_DDR |= (1<<SPI_SS_PIN);
    SPI_PORT |= (1<<SPI_SS_PIN); // HI
+    */
+   
+   // Slave init
+   SPI_DDR |= (1<<SPI_MISO_PIN); // Output
+   //SPI_PORT &= ~(1<<SPI_MISO_PIN); // HI
+   SPI_DDR &= ~(1<<SPI_MOSI_PIN); // Input
+   SPI_DDR &= ~(1<<SPI_SCK_PIN); // Input
+   //SPI_PORT &= ~(1<<SPI_SCK_PIN); // LO
+   SPI_DDR &= ~(1<<SPI_SS_PIN); // Input
+   SPI_PORT |= (1<<SPI_SS_PIN); // HI
+
+   
+   
+   
 }
 
 void SPI_ADC_init(void) // SS-Pin fuer EE aktivieren
@@ -597,6 +410,14 @@ void spi_end(void) // SPI-Pins deaktivieren
    //SPI_EE_DDR &= ~(1<<SPI_EE_CS_PIN); // EE-CS-PIN off
 }
 
+/*
+void spi_slave_init()
+{
+   SPCR=0;
+   SPCR = (1<<SPE)|(1<<SPR1)|(0<<SPR0)|(1<<CPOL)|(1<<CPHA);
+   
+}
+*/
 
 void delay_ms(unsigned int ms)/* delay for a minimum of <ms> */
 {
@@ -737,16 +558,27 @@ ISR (TIMER0_OVF_vect)
       blinkcounter++;
    }
    
-   
-   
-   
 }
+
+#pragma mark INT0
+ISR(INT0_vect) // Interrupt bei CS, falling edge
+{
+   OSZI_B_LO;
+   inindex=0;
+   SPDR = 17;// Erstes Byte an Slave
+   OSZI_B_HI;
+   
+ //  spi_txbuffer[0]++;
+ //  spi_txbuffer[2]--;
+
+}
+
 
 
 #pragma mark PIN_CHANGE
 //https://sites.google.com/site/qeewiki/books/avr-guide/external-interrupts-on-the-atmega328
 
-
+/*
 ISR (PCINT0_vect)
 {
    
@@ -765,27 +597,7 @@ ISR (PCINT0_vect)
    }
    
 }
-#pragma mark USB_ATTACH
-
-ISR(INT3_vect) // Interrupt bei USB_ATTACH, rising edge
-{
-   
-//   lcd_gotoxy(16,1);
-//   lcd_putc('+');
- //  lcd_putint2(laufsekunde);
-   
- }
-
-
-#pragma mark POWER_OFF
-
-ISR( ANALOG_COMP_vect ) // Power-OFF detektieren
-{
-}
-
-
-
-
+ */
 
 uint8_t Tastenwahl(uint8_t Tastaturwert)
 {
@@ -908,7 +720,7 @@ int main (void)
 {
    int8_t r;
    
-   uint16_t count=0;
+   uint16_t spi_count=0;
    
 	// set for 16 MHz clock
 	CPU_PRESCALE(CPU_8MHz); // Strom sparen
@@ -919,7 +731,7 @@ int main (void)
    
    //   sei();
 	Master_Init();
-   
+   spi_slave_init();
    // ---------------------------------------------------
    // in attach verschobe, nur wenn USB eingesteckt
      usb_init();
@@ -955,7 +767,7 @@ int main (void)
 	
 	uint8_t TastaturCount=0;
 		
-	initADC(1);
+	//initADC(1);
 	
 	uint16_t loopcount0=0;
 	uint16_t loopcount1=0;
@@ -998,6 +810,7 @@ int main (void)
    
    sei();
    
+   uint8_t i=0;
 // MARK:  while
 	while (1)
 	{
@@ -1005,17 +818,105 @@ int main (void)
 		//Blinkanzeige
 		loopcount0+=1;
       
-		if (loopcount0==0x8FFF)
+      
+      /* **** spi_buffer abfragen **************** */
+
+      if (spi_rxdata) // Etwas ueber SPI angekommen
+      {
+         spi_rxdata=0;
+         
+         spi_count++;
+         //lcd_gotoxy(0,0);
+         //lcd_puts("SPI");
+         //lcd_gotoxy(3,0);
+        // lcd_puts("  ");
+        // lcd_gotoxy(4,0);
+         //lcd_puthex(spi_count & 0xFF);
+         //lcd_puthex(inindex & 0x07);
+         //lcd_clr_line(1);
+         //lcd_gotoxy(0,1);
+         //lcd_puthex(spi_rxbuffer[inindex]);
+         
+         for (i=0;i<SPI_BUFFERSIZE;i++)
+         {
+            //lcd_puthex(spi_rxbuffer[i]);
+            sendbuffer[i+CODE_OFFSET] = spi_rxbuffer[i];
+         }
+         
+         
+         
+         //lcd_gotoxy(0,0);
+         //lcd_putc('o');
+         //lcd_gotoxy(12,1);
+         //lcd_puts("  ");
+         lcd_gotoxy(0,0);
+         lcd_puthex(spi_txbuffer[0]);
+         lcd_puthex(spi_txbuffer[1]);
+         lcd_puthex(spi_txbuffer[2]);
+         lcd_puthex(spi_txbuffer[3]);
+         lcd_puts("  ");
+         lcd_puthex(spi_txbuffer[4]);
+         lcd_puthex(spi_txbuffer[5]);
+         lcd_puthex(spi_txbuffer[6]);
+         lcd_puthex(spi_txbuffer[7]);
+         
+         //lcd_puthex(sendbuffer[ROTARY_OFFSET]);
+         //lcd_puthex(sendbuffer[ROTARY_OFFSET+1]);
+         //lcd_puthex(spi_txbuffer[1]);
+         //   SPDR = spi_txbuffer[0];
+         
+      }
+      /* **** end spi_buffer abfragen **************** */
+
+      
+		if (loopcount0==0x2FFF)
 		{
 			loopcount0=0;
 			loopcount1+=1;
 			LOOPLEDPORT ^=(1<<LOOPLED);
          
- //        lcd_gotoxy(18,0);
- //        lcd_puthex(loopcount1);
-          sendbuffer[4] = loopcount1;
-         uint8_t usberfolg = usb_rawhid_send((void*)sendbuffer, 50);
+         //lcd_gotoxy(18,0);
+         //lcd_puthex(loopcount1);
+         sendbuffer[4] = 0;//loopcount1;
+         sendbuffer[0] = 0;//usb_readcount;
+         sendbuffer[1] = 13;
+         sendbuffer[2] = 17;
+         sendbuffer[3] = 75;
+         sendbuffer[5] = spi_rxbuffer[0];
+         lcd_gotoxy(0,1);
+         
+        
+         lcd_puthex(spi_rxbuffer[0]);
+         lcd_puthex(spi_rxbuffer[1]);
+         lcd_puthex(spi_rxbuffer[2]);
+         lcd_puthex(spi_rxbuffer[3]);
+         lcd_puts("  ");
+         lcd_puthex(spi_rxbuffer[4]);
+         lcd_puthex(spi_rxbuffer[5]);
+         lcd_puthex(spi_rxbuffer[6]);
+         lcd_puthex(spi_rxbuffer[7]);
+         
+         
+/*
+         lcd_puthex(sendbuffer[CODE_OFFSET]);
+         lcd_puthex(sendbuffer[CODE_OFFSET+1]);
+         lcd_puthex(sendbuffer[ROTARY_OFFSET]);
+         lcd_puthex(sendbuffer[ROTARY_OFFSET+1]);
+         lcd_putc(' ');
+         uint16_t rot = (sendbuffer[ROTARY_OFFSET+1]<<8) | sendbuffer[ROTARY_OFFSET];
+         lcd_putint16(rot);
+ */
+         //lcd_puthex(sendbuffer[9]);
+         //lcd_putc(' ');
+         //lcd_puthex(sendbuffer[8]);
+         //lcd_putc(' ');
+         //lcd_puthex(SPI_Data_counter);
 
+
+         uint8_t usberfolg = usb_rawhid_send((void*)sendbuffer, 50);
+         //lcd_puthex(usberfolg);
+         
+         
          if(loopcount1%16 == 0)
          {
             anzeigecounter = 0;
@@ -1109,17 +1010,20 @@ int main (void)
       // Start USB
       //OSZI_D_LO;
       r=0;
-      r = usb_rawhid_recv((void*)buffer, 0); // 2us
+      
+      r = usb_rawhid_recv((void*)buffer, 0); // 5us
       //OSZI_D_HI;
       // MARK: USB_READ
       
       if (r > 0)
       {
+         OSZI_A_LO ;
+         
          //OSZI_D_LO;
          cli();
          usb_readcount++;
          uint8_t code = 0x00;
-         OSZI_A_TOGG;
+         
          /*
          lcd_gotoxy(0,0);
          //lcd_putc('*');
@@ -1135,18 +1039,52 @@ int main (void)
          lcd_puthex(buffer[3]);
          lcd_putc('*');
           */
+
+         for (i=0;i<SPI_BUFFERSIZE;i++)
+         {
+            //lcd_puthex(spi_rxbuffer[i]);
+            //sendbuffer[i+ROTARY_OFFSET] = spi_rxbuffer[i];
+         }
+
+         lcd_gotoxy(10,1);
+         //lcd_putc('*');
+         //lcd_puthex(r);
+         //lcd_putc('*');
+         //lcd_puthex(sendbuffer[ROTARY_OFFSET]);
+         //lcd_putc('*');
+         //lcd_puthex(spi_rxbuffer[0]);
+         lcd_putc('c');
+         //lcd_puthex(spi_rxbuffer[1]);
+         lcd_puthex(buffer[0]);
+         lcd_putc('d');
+         lcd_puthex(buffer[1]);
+         lcd_puthex(buffer[2]);
+         
+         spi_txbuffer[0] = buffer[0];
+         spi_txbuffer[1] = buffer[1];
+         spi_txbuffer[2] = buffer[2];
+         spi_txbuffer[3] = 5;
+         
+         //lcd_puthex(buffer[0]);
+
+         /*
          sendbuffer[0] = usb_readcount;
          sendbuffer[1] = 13;
-         sendbuffer[2] = 14;
-         sendbuffer[3] = 15;
+         sendbuffer[2] = 17;
+         sendbuffer[3] = 75;
+         sendbuffer[5] = spi_rxbuffer[0];
+         lcd_puthex(sendbuffer[5]);
+          */
+       //  lcd_putc('*');
+        
          
-         uint8_t usberfolg = usb_rawhid_send((void*)sendbuffer, 50);
-         /*
-         lcd_gotoxy(0,1);
-         lcd_putc('*');
-         lcd_putint(usberfolg);
-         lcd_putc('*');
-         */
+      //   uint8_t usberfolg = usb_rawhid_send((void*)sendbuffer, 50);
+         
+        // lcd_gotoxy(0,1);
+        // lcd_putc('*');
+       //  lcd_putint(usberfolg);
+       //  lcd_putc('*');
+         
          
 
          usbstatus |= (1<<USB_RECV);
@@ -1234,13 +1172,13 @@ int main (void)
              
              */
          }
-         OSZI_A_HI;
+         //OSZI_A_HI;
          //lcd_putc('$');
          code=0;
          sei();
          
          //OSZI_D_HI;
-         
+         OSZI_A_HI ;
 		} // r>0, neue Daten
       else
       {
