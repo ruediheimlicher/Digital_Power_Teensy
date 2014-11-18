@@ -537,7 +537,7 @@ int8_t usb_rawhid_recv(uint8_t *buffer, uint8_t timeout)
 	// release the buffer
 	UEINTX = 0x6B;
 	SREG = intr_state;
-   //OSZI_B_HI ;
+   
    hidstatus = RAWHID_RX_SIZE;
 	return RAWHID_RX_SIZE;
 }

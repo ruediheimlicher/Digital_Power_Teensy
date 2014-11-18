@@ -36,19 +36,15 @@ inc (volatile uint8_t *a)
 
 ISR (SPI_STC_vect) // Neue Zahl angekommen
 {
-   spi_rxdata=1;
+  
    
    spi_rxbuffer[inindex] = SPDR;
+   
    SPDR = spi_txbuffer[inindex];
+   
    //uint8_t input = SPDR;
-   
-   //if (input == 0x24)
-   {
-      //inindex = 0;
-   }
-   
 
-  
+   spi_rxdata=1;
    //inindex = inc(&inindex);
    inindex++;
    inindex &= 0x0F;
@@ -56,14 +52,17 @@ ISR (SPI_STC_vect) // Neue Zahl angekommen
 }
 
 
-
+// TODO: Init von SCK, MISO LO oder HI
 
 void spi_slave_init (void)
 {
    SPI_DDR = ~((1<<SPI_SS) | (1<<SPI_MOSI) | (1<<SPI_SCK));		// setze SCK,MOSI,PB0 (SS) als Eingang
-	SPI_DDR |= (1<<SPI_MISO);							// setze MISO als Ausgang
 	
-  // SPI_PORT = (1<<SPI_SCK) | (1<<SPI_SS);
+   
+   
+   SPI_DDR |= (1<<SPI_MISO);							// setze MISO als Ausgang
+	
+//  SPI_PORT |= (1<<SPI_SCK) | (1<<SPI_SS);
    
    
 	SPCR = (1<<SPE) | (1<<SPIE);			//Aktivierung des SPI + Interrupt

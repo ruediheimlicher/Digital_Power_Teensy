@@ -40,7 +40,7 @@
 #define SERVOMIN  1400
 
 
-#define USB_DATENBREITE 64
+#define USB_DATENBREITE 32
 #define EE_PARTBREITE 32
 
 #define CODE_OFFSET  8
@@ -395,7 +395,6 @@ void spi_start(void) // SPI-Pins aktivieren
    
    SPI_DDR |= (1<<SPI_SS_PIN);
    SPI_PORT |= (1<<SPI_SS_PIN); // HI
-   
   }
 
 void spi_end(void) // SPI-Pins deaktivieren
@@ -565,7 +564,7 @@ ISR(INT0_vect) // Interrupt bei CS, falling edge
 {
    OSZI_B_LO;
    inindex=0;
-   SPDR = 17;// Erstes Byte an Slave
+   SPDR = 18;// Erstes Byte an Slave
    OSZI_B_HI;
    
  //  spi_txbuffer[0]++;
@@ -796,7 +795,7 @@ int main (void)
    // ---------------------------------------------------
    // Vorgaben fuer Homescreen
    // ---------------------------------------------------
-	lcd_gotoxy(1,2);
+	lcd_gotoxy(0,0);
 	lcd_puts("Digital_Power\0");
    delay_ms(1000);
    lcd_cls();
@@ -812,6 +811,11 @@ int main (void)
    
    uint8_t i=0;
 // MARK:  while
+   
+   volatile   uint8_t old_H=0;
+   volatile   uint8_t old_L=0;
+   uint8_t teensy_err =0;
+
 	while (1)
 	{
       //OSZI_B_LO;
@@ -826,7 +830,7 @@ int main (void)
          spi_rxdata=0;
          
          spi_count++;
-         //lcd_gotoxy(0,0);
+         lcd_gotoxy(0,0);
          //lcd_puts("SPI");
          //lcd_gotoxy(3,0);
         // lcd_puts("  ");
@@ -849,17 +853,19 @@ int main (void)
          //lcd_putc('o');
          //lcd_gotoxy(12,1);
          //lcd_puts("  ");
+         /*
+          // Inhalt von USB
          lcd_gotoxy(0,0);
          lcd_puthex(spi_txbuffer[0]);
          lcd_puthex(spi_txbuffer[1]);
          lcd_puthex(spi_txbuffer[2]);
          lcd_puthex(spi_txbuffer[3]);
-         lcd_puts("  ");
+         lcd_putc(' ');
          lcd_puthex(spi_txbuffer[4]);
          lcd_puthex(spi_txbuffer[5]);
          lcd_puthex(spi_txbuffer[6]);
          lcd_puthex(spi_txbuffer[7]);
-         
+         */
          //lcd_puthex(sendbuffer[ROTARY_OFFSET]);
          //lcd_puthex(sendbuffer[ROTARY_OFFSET+1]);
          //lcd_puthex(spi_txbuffer[1]);
@@ -877,26 +883,42 @@ int main (void)
          
          //lcd_gotoxy(18,0);
          //lcd_puthex(loopcount1);
-         sendbuffer[4] = 0;//loopcount1;
          sendbuffer[0] = 0;//usb_readcount;
          sendbuffer[1] = 13;
          sendbuffer[2] = 17;
          sendbuffer[3] = 75;
          sendbuffer[5] = spi_rxbuffer[0];
+         
          lcd_gotoxy(0,1);
          
-        
          lcd_puthex(spi_rxbuffer[0]);
          lcd_puthex(spi_rxbuffer[1]);
+         lcd_putc(' ');
          lcd_puthex(spi_rxbuffer[2]);
          lcd_puthex(spi_rxbuffer[3]);
-         lcd_puts("  ");
+         lcd_putc(' ');
+         /*
          lcd_puthex(spi_rxbuffer[4]);
          lcd_puthex(spi_rxbuffer[5]);
          lcd_puthex(spi_rxbuffer[6]);
          lcd_puthex(spi_rxbuffer[7]);
+         */
+          lcd_gotoxy(0,0);
+         lcd_puthex(spi_txbuffer[0]);
+         lcd_puthex(spi_txbuffer[1]);
+         lcd_putc(' ');
+         lcd_puthex(spi_txbuffer[2]);
+         lcd_puthex(spi_txbuffer[3]);
+
          
-         
+         if (!((old_H == spi_rxbuffer[3]) && (old_L == spi_rxbuffer[2])) )
+         {
+            teensy_err++;
+            old_L = spi_rxbuffer[2];
+            old_H = spi_rxbuffer[3];
+         }
+         //lcd_gotoxy(18,1);
+         //lcd_puthex(teensy_err);
 /*
          lcd_puthex(sendbuffer[CODE_OFFSET]);
          lcd_puthex(sendbuffer[CODE_OFFSET+1]);
@@ -1046,24 +1068,27 @@ int main (void)
             //sendbuffer[i+ROTARY_OFFSET] = spi_rxbuffer[i];
          }
 
-         lcd_gotoxy(10,1);
-         //lcd_putc('*');
+                  //lcd_putc('*');
          //lcd_puthex(r);
          //lcd_putc('*');
          //lcd_puthex(sendbuffer[ROTARY_OFFSET]);
          //lcd_putc('*');
          //lcd_puthex(spi_rxbuffer[0]);
-         lcd_putc('c');
+         lcd_gotoxy(0,0);
+         lcd_putc('b');
          //lcd_puthex(spi_rxbuffer[1]);
          lcd_puthex(buffer[0]);
-         lcd_putc('d');
+         //lcd_putc('d');
          lcd_puthex(buffer[1]);
          lcd_puthex(buffer[2]);
          
          spi_txbuffer[0] = buffer[0];
+         
          spi_txbuffer[1] = buffer[1];
          spi_txbuffer[2] = buffer[2];
-         spi_txbuffer[3] = 5;
+         spi_txbuffer[3] = buffer[3];
+         spi_txbuffer[4] = buffer[4];
+         
          
          //lcd_puthex(buffer[0]);
 
